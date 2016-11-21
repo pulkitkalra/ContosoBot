@@ -17,6 +17,7 @@ namespace ContosoBot
             try
             {
                 string ServiceURL = $"http://finance.yahoo.com/d/quotes.csv?s={StockSymbol}&f=sl1d1nd";
+                
                 string ResultInCSV;
                 using (WebClient client = new WebClient())
                 {

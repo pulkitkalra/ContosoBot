@@ -7,12 +7,15 @@ using System.Web.Http;
 using System.Web.Http.Description;
 using Microsoft.Bot.Connector;
 using Newtonsoft.Json;
+using ContosoBot.Controllers;
+using Microsoft.Bot.Builder.Dialogs;
 
 namespace ContosoBot
 {
     [BotAuthentication]
     public class MessagesController : ApiController
     {
+        public static StockLUIS StLUIS;
         /// <summary>
         /// POST: api/Messages
         /// Receive a message from a user and reply to it
@@ -21,37 +24,36 @@ namespace ContosoBot
         {
             if (message.Type == ActivityTypes.Message)
             {
+                ConnectorClient connector = new ConnectorClient(new Uri(message.ServiceUrl));
+
+                Activity reply;
                 string StockRateString;
-                StockLUIS StLUIS = await GetEntityFromLUIS(message.Text);
+                StLUIS = await GetEntityFromLUIS(message.Text);
                 if (StLUIS.intents.Count() > 0)
                 {
                     switch (StLUIS.intents[0].intent)
                     {
                         case "StockPrice":
-                            StockRateString = await Stock.GetStock(StLUIS.entities[0].entity);
+                            await Conversation.SendAsync(message, () => new StockCards());
                             break;
-                        // use below to get i
+                        // use below to get another intent
                         /*
                         case "StockPrice2":
                             StockRateString = await Stock.GetStock(StLUIS.entities[0].entity);
                             break;*/
                         default:
                             StockRateString = "Sorry, I am not getting you...";
+                            reply = message.CreateReply(StockRateString);
+                            await connector.Conversations.ReplyToActivityAsync(reply);
                             break;
                     }
                 }
                 else
                 {
                     StockRateString = "Sorry, I am not getting you...";
+                    reply = message.CreateReply(StockRateString);
+                    await connector.Conversations.ReplyToActivityAsync(reply);
                 }
-
-                // return our reply to the user  
-                ConnectorClient connector = new ConnectorClient(new Uri(message.ServiceUrl));
-                // calculate something for us to return
-
-                // return our reply to the user
-                Activity reply = message.CreateReply(StockRateString);
-                await connector.Conversations.ReplyToActivityAsync(reply);
             }
             else
             {
@@ -111,19 +113,5 @@ namespace ContosoBot
         }
     }
 
-    public class Stock
-    {
-        public static async Task<string> GetStock(string StockSymbol)
-        {
-            double? dblStockValue = await StockYahoo.GetStockRateAsync(StockSymbol);
-            if (dblStockValue == null)
-            {
-                return string.Format("This \"{0}\" is not an valid stock symbol", StockSymbol);
-            }
-            else
-            {
-                return string.Format("Stock Price of {0} is {1}", StockSymbol, dblStockValue);
-            }
-        }
-    }
+    
 }
