@@ -21,7 +21,7 @@ namespace ContosoBot
             context.Wait(ActivityReceivedAsync);
         }
 
-        private async Task ActivityReceivedAsync(IDialogContext context, IAwaitable<object> result)
+        public async Task ActivityReceivedAsync(IDialogContext context, IAwaitable<object> result)
         {
             var activity = await result as Activity;
             var reply = activity.CreateReply();

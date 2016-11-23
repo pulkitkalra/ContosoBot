@@ -15,7 +15,9 @@ namespace ContosoBot
     [BotAuthentication]
     public class MessagesController : ApiController
     {
+
         public static StockLUIS StLUIS;
+        public static Boolean favOn;
         /// <summary>
         /// POST: api/Messages
         /// Receive a message from a user and reply to it
@@ -26,7 +28,8 @@ namespace ContosoBot
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
                 StateClient stateClient = activity.GetStateClient();
-
+                BotData userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
+                var userMessage = activity.Text;
                 Activity reply;
                 string StockRateString;
                 StLUIS = await GetEntityFromLUIS(activity.Text);
@@ -34,14 +37,50 @@ namespace ContosoBot
                 {
                     switch (StLUIS.intents[0].intent)
                     {
-                        case "StockPrice":
-                            await Conversation.SendAsync(activity, () => new StockCards());
-                            break;
-                        // use below to get another intent
-                        
+                        // users asks for stock price of particular stock.
                         case "ConvertCurrency":
                             await Conversation.SendAsync(activity, () => new CurrencyCard());
                             break;
+                        case "StockPrice":
+                            await Conversation.SendAsync(activity, () => new StockCards());
+                            break;
+                        // user asks for converting particular currency.                        
+
+                        // user wants to set a particular stock as their favourite.
+                        case "SetAsFavourite":
+                            string favStock = StLUIS.entities[0].entity;
+                            userData.SetProperty<string>("FavStock", favStock);
+                            await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
+                            StockRateString = favStock + " has been set as your favourite stock.\nYou can call it by simply typing 'favourite stock' or similar.\nReset your favourite by typing 'Clear favourite stock' or similar.";
+                            reply = activity.CreateReply(StockRateString);
+                            await connector.Conversations.ReplyToActivityAsync(reply);
+                            favOn = true;
+                            break;
+                        // users wants to get their favourite stock.
+                        case "GetFavourite":
+                            string fStock = userData.GetProperty<string>("FavStock");
+                            if (fStock == null)
+                            {
+                                StockRateString = "You have not assigned any stock as favourite.";
+                                reply = activity.CreateReply(StockRateString);
+                                await connector.Conversations.ReplyToActivityAsync(reply);
+                            }
+                            else
+                            {
+                                favOn = true;
+                                StockCards.favStock = fStock;
+                                await Conversation.SendAsync(activity, () => new StockCards());
+                            }
+                            break;
+                        // users wants to clear favourite stock.
+                        case "ClearFavourite":
+                            await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
+                            StockRateString = "Your favourite stock has been cleared.";
+                            reply = activity.CreateReply(StockRateString);
+                            await connector.Conversations.ReplyToActivityAsync(reply);
+                            favOn = false;
+                            break;
+                        // user wants to do something that is not supported or understood.
                         default:
                             StockRateString = "Sorry, I am not getting you...";
                             reply = activity.CreateReply(StockRateString);
@@ -55,6 +94,7 @@ namespace ContosoBot
                     reply = activity.CreateReply(StockRateString);
                     await connector.Conversations.ReplyToActivityAsync(reply);
                 }
+                
             }
             else
             {
@@ -114,5 +154,5 @@ namespace ContosoBot
         }
     }
 
-    
+
 }
