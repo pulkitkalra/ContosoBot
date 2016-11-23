@@ -22,8 +22,16 @@ namespace ContosoBot
             var activity = await result as Activity;
             var reply = activity.CreateReply();
             reply.Attachments = new List<Attachment>();
-            String stock = await Stock.GetStock(MessagesController.StLUIS.entities[0].entity);
-            if (stock == null)
+            String stock;
+            if (MessagesController.StLUIS.entities[0].entity == null) {
+                HeroCard hc = new HeroCard()
+                {
+                    Title = "Sorry, I'm not sure I understand.",                   
+                };
+
+                reply.Attachments.Add(hc.ToAttachment());
+            }
+            else if ((stock = await Stock.GetStock(MessagesController.StLUIS.entities[0].entity)) == null)
             {
                 HeroCard hc = new HeroCard()
                 {

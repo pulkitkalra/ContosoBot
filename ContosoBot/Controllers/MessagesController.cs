@@ -20,30 +20,31 @@ namespace ContosoBot
         /// POST: api/Messages
         /// Receive a message from a user and reply to it
         /// </summary>
-        public async Task<HttpResponseMessage> Post([FromBody]Activity message)
+        public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
-            if (message.Type == ActivityTypes.Message)
+            if (activity.Type == ActivityTypes.Message)
             {
-                ConnectorClient connector = new ConnectorClient(new Uri(message.ServiceUrl));
+                ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                StateClient stateClient = activity.GetStateClient();
 
                 Activity reply;
                 string StockRateString;
-                StLUIS = await GetEntityFromLUIS(message.Text);
+                StLUIS = await GetEntityFromLUIS(activity.Text);
                 if (StLUIS.intents.Count() > 0)
                 {
                     switch (StLUIS.intents[0].intent)
                     {
                         case "StockPrice":
-                            await Conversation.SendAsync(message, () => new StockCards());
+                            await Conversation.SendAsync(activity, () => new StockCards());
                             break;
                         // use below to get another intent
-                        /*
-                        case "StockPrice2":
-                            StockRateString = await Stock.GetStock(StLUIS.entities[0].entity);
-                            break;*/
+                        
+                        case "ConvertCurrency":
+                            await Conversation.SendAsync(activity, () => new CurrencyCard());
+                            break;
                         default:
                             StockRateString = "Sorry, I am not getting you...";
-                            reply = message.CreateReply(StockRateString);
+                            reply = activity.CreateReply(StockRateString);
                             await connector.Conversations.ReplyToActivityAsync(reply);
                             break;
                     }
@@ -51,13 +52,13 @@ namespace ContosoBot
                 else
                 {
                     StockRateString = "Sorry, I am not getting you...";
-                    reply = message.CreateReply(StockRateString);
+                    reply = activity.CreateReply(StockRateString);
                     await connector.Conversations.ReplyToActivityAsync(reply);
                 }
             }
             else
             {
-                HandleSystemMessage(message);
+                HandleSystemMessage(activity);
             }
             var response = Request.CreateResponse(HttpStatusCode.OK);
             return response;
