@@ -34,6 +34,12 @@ namespace ContosoBot
                 BotData userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
                 var userMessage = activity.Text;
                 Activity reply;
+
+                reply = activity.CreateReply();
+                reply.Type = ActivityTypes.Typing;
+                reply.Text = null;
+                await connector.Conversations.ReplyToActivityAsync(reply);
+
                 string StockRateString;
                 StLUIS = await GetEntityFromLUIS(activity.Text);
                 if (StLUIS.intents.Count() > 0)
