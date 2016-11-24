@@ -9,6 +9,9 @@ using Microsoft.Bot.Connector;
 using Newtonsoft.Json;
 using ContosoBot.Controllers;
 using Microsoft.Bot.Builder.Dialogs;
+using ContosoBot.DataModels;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace ContosoBot
 {
@@ -38,14 +41,13 @@ namespace ContosoBot
                     switch (StLUIS.intents[0].intent)
                     {
                         // users asks for stock price of particular stock.
-                        case "ConvertCurrency":
-                            await Conversation.SendAsync(activity, () => new CurrencyCard());
-                            break;
                         case "StockPrice":
                             await Conversation.SendAsync(activity, () => new StockCards());
                             break;
                         // user asks for converting particular currency.                        
-
+                        case "ConvertCurrency":
+                            await Conversation.SendAsync(activity, () => new CurrencyCard());
+                            break;
                         // user wants to set a particular stock as their favourite.
                         case "SetAsFavourite":
                             string favStock = StLUIS.entities[0].entity;
@@ -80,6 +82,67 @@ namespace ContosoBot
                             await connector.Conversations.ReplyToActivityAsync(reply);
                             favOn = false;
                             break;
+                        // user wants to see list of lost/ stolen cards.
+                        case "SeeLost":
+                            List<Timeline> timelines = await AzureManager.AzureManagerInstance.GetTimelines();
+                            StockRateString = "";
+                            foreach (Timeline t in timelines)
+                            {
+                                if (t.CardNumber != 0)
+                                {
+                                    StockRateString += "Card Number: [" + t.CardNumber + "]   STATUS: " + t.Status + ",   Time Reported: " + t.LostTime + "\n\n";
+                                }
+                            }
+                            reply = activity.CreateReply(StockRateString);
+                            await connector.Conversations.ReplyToActivityAsync(reply);
+                            break;
+                        // user wants to report a lost/ stolen card.
+                        case "ReportCard":
+                            int cardNo = 0;
+                            String status = "";
+                            for (int i = 0; i < 2; i++)
+                            {
+                                if (StLUIS.entities[i].type.Equals("statusOfCard"))
+                                {
+                                    status = StLUIS.entities[i].entity;
+                                }
+                                else
+                                {
+                                    cardNo = int.Parse(StLUIS.entities[i].entity);
+                                }
+                            }
+                            Timeline timeline = new Timeline()
+                            {
+                                CardNumber = cardNo,
+                                Status = StLUIS.entities[0].entity,
+                                LostTime = DateTime.Now + ""
+                            };
+
+                            await AzureManager.AzureManagerInstance.AddTimeline(timeline);
+                            StockRateString = "Your report for " + timeline.Status + " card ( ID: " + timeline.CardNumber + " ) has been registered.";
+                            reply = activity.CreateReply(StockRateString);
+                            await connector.Conversations.ReplyToActivityAsync(reply);
+                            break;
+                        // user wants to mark a card as found.
+                        case "MarkFound":
+                            List<Timeline> tlines = await AzureManager.AzureManagerInstance.GetTimelines();
+                            StockRateString = "";
+                            foreach (Timeline t in tlines)
+                            {
+                                if (t.CardNumber != 0)
+                                {
+                                    if (int.Parse(StLUIS.entities[0].entity).Equals(t.CardNumber))
+                                    {
+                                        await AzureManager.AzureManagerInstance.RemoveTimeline(t);
+                                        break;
+                                    }
+                                }
+                            }
+                            reply = activity.CreateReply(StLUIS.entities[0].entity + " has been marked as found.");
+                            await connector.Conversations.ReplyToActivityAsync(reply);
+                            break;
+                        // user wants to update an entry they made. (?)
+
                         // user wants to do something that is not supported or understood.
                         default:
                             StockRateString = "Sorry, I am not getting you...";
@@ -94,7 +157,7 @@ namespace ContosoBot
                     reply = activity.CreateReply(StockRateString);
                     await connector.Conversations.ReplyToActivityAsync(reply);
                 }
-                
+
             }
             else
             {
@@ -153,6 +216,4 @@ namespace ContosoBot
             return Data;
         }
     }
-
-
 }
