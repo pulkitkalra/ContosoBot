@@ -139,6 +139,7 @@
     <Compile Include="AzureManager.cs" />
     <Compile Include="CurrencyCard.cs" />
     <Compile Include="DataModels\Timeline.cs" />
+    <Compile Include="HelpDialog.cs" />
     <Compile Include="StockCards.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
     <Compile Include="Controllers\Stock.cs" />
