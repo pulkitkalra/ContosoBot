@@ -29,6 +29,33 @@ namespace ContosoBot
             {
                 CurrencyCard c = new CurrencyCard();
                 await c.ActivityReceivedAsync(context, result);
+            } else if (MessagesController.StLUIS.intents[0].intent.Equals("GetHelp"))
+            {
+                List<CardAction> cardAction = new List<CardAction>();
+                reply.Attachments = new List<Attachment>();
+                CardAction ca = new CardAction()
+                {
+                    // card Action is for button to view more info on stock.
+                    Title = "See More",
+                    Type = "openUrl",
+                    Value = "http://contosochat.azurewebsites.net/"
+                };
+                cardAction.Add(ca);
+                String value = "To get Stocks, type: give me the msft stock (or similar).";
+                value += "\n\nYou can make a stock favourite by typing: make msft my favourite stock.";
+                value += "\n\nTo get your favourite stock, simply type: favourite stock";
+                value += "\n\nCurrecy exchange example: convert 300 nzd to usd.";
+                value += "\n\nYou can register your card as lost or stolen if you have your card number. Type: register card 12345 as lost";
+                value += "\n\nYou see all the lost/stolen cards by typing: show stolen cards\n";
+                HeroCard tc = new HeroCard()
+                {
+                    Buttons = cardAction,
+                    Title = "Help",
+                    Subtitle = value,
+                };
+                reply.Attachments.Add(tc.ToAttachment());
+                await context.PostAsync(reply);
+                context.Wait(ActivityReceivedAsync);
             }
             else
             {

@@ -150,6 +150,10 @@ namespace ContosoBot
                             break;
                         // user wants to update an entry they made. (?)
 
+                        // user wants to get Help
+                        case "GetHelp":
+                            await Conversation.SendAsync(activity, () => new StockCards());
+                            break;
                         // user wants to do something that is not supported or understood.
                         default:
                             StockRateString = "Sorry, I'm not sure I understand.";
