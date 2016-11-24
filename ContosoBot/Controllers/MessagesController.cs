@@ -34,6 +34,12 @@ namespace ContosoBot
                 BotData userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
                 var userMessage = activity.Text;
                 Activity reply;
+
+                reply = activity.CreateReply();
+                reply.Type = ActivityTypes.Typing;
+                reply.Text = null;
+                await connector.Conversations.ReplyToActivityAsync(reply);
+
                 string StockRateString;
                 StLUIS = await GetEntityFromLUIS(activity.Text);
                 if (StLUIS.intents.Count() > 0)
@@ -42,6 +48,7 @@ namespace ContosoBot
                     {
                         // users asks for stock price of particular stock.
                         case "StockPrice":
+                            favOn = false;
                             await Conversation.SendAsync(activity, () => new StockCards());
                             break;
                         // user asks for converting particular currency.                        
@@ -145,7 +152,7 @@ namespace ContosoBot
 
                         // user wants to do something that is not supported or understood.
                         default:
-                            StockRateString = "Sorry, I am not getting you...";
+                            StockRateString = "Sorry, I'm not sure I understand.";
                             reply = activity.CreateReply(StockRateString);
                             await connector.Conversations.ReplyToActivityAsync(reply);
                             break;
@@ -153,7 +160,7 @@ namespace ContosoBot
                 }
                 else
                 {
-                    StockRateString = "Sorry, I am not getting you...";
+                    StockRateString = "Sorry, I'm not sure I understand.";
                     reply = activity.CreateReply(StockRateString);
                     await connector.Conversations.ReplyToActivityAsync(reply);
                 }
